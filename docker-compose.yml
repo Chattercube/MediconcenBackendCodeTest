@@ -1,0 +1,45 @@
+services:
+  mysql:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: mediconcen
+      MYSQL_USER: app
+      MYSQL_PASSWORD: app_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uapp", "-papp_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env.example
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  mysql-data:
