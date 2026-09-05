@@ -57,6 +57,6 @@ export class UserLinksService {
   }
 
   private cacheKey(id1: string, id2: string): string {
-    return `user-link:${id1}:${id2}`;
+    return `user-link:${JSON.stringify([id1, id2])}`;
   }
 }

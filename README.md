@@ -8,6 +8,8 @@ NestJS is a structured Node.js framework for TypeScript backends. It borrows ide
 
 Redis is an in-memory data store. Here it is used as a cache: once `(id1, id2)` has been resolved to a `userID`, future requests can return quickly without immediately querying MySQL. MySQL is still the source of truth.
 
+Cache keys use `user-link:` followed by a JSON-encoded identifier pair. For example, `("a:b", "c")` becomes `user-link:["a:b","c"]`, while `("a", "b:c")` becomes `user-link:["a","b:c"]`. JSON encoding preserves the boundary between identifiers and escapes quotes and backslashes. Existing cache entries are assumed to have been cleared before adopting this format.
+
 ## Run With Docker
 
 Complete the configuration setup below first, including both MySQL passwords. Docker with the Compose plugin is required.
@@ -102,7 +104,7 @@ sequenceDiagram
   participant MySQL
 
   Client->>API: POST /users/resolve { id1, id2 }
-  API->>Redis: GET user-link:{id1}:{id2}
+  API->>Redis: GET user-link:JSON.stringify([id1, id2])
   alt Cache hit
     Redis-->>API: userID
     API-->>Client: { userID }
@@ -110,7 +112,7 @@ sequenceDiagram
     API->>MySQL: INSERT id1, id2, UUIDv4 ON DUPLICATE KEY UPDATE
     API->>MySQL: SELECT user_id WHERE id1 = ? AND id2 = ?
     MySQL-->>API: userID
-    API->>Redis: SET user-link:{id1}:{id2} userID
+    API->>Redis: SET user-link:JSON.stringify([id1, id2]) userID
     API-->>Client: { userID }
   end
 ```
@@ -159,7 +161,9 @@ The initial suite in `test/validation.test.ts` exercises the same validation-pip
 
 The configuration suite in `test/configuration.test.ts` checks required values, numeric ranges, secret-safe errors, `.env` loading and environment-variable precedence. It also launches the compiled application in an isolated directory with no configuration to verify that startup exits with setup guidance. Test passwords are generated at runtime.
 
-The 76 tests require no `.env`, HTTP server, MySQL or Redis. Persistence, concurrency, HTTP routing and dependency-failure integration checks remain to be added.
+The service regression tests in `test/user-links.test.ts` use in-memory database and Redis substitutes to verify that delimiter-containing identifiers, quotes, backslashes and pair ordering resolve independently. They also verify that repeated requests use the cache and retain their IDs after the cache is cleared.
+
+The 78 tests require no `.env`, HTTP server, MySQL or Redis. Persistence, concurrency, HTTP routing and dependency-failure integration checks against real services remain to be added.
 
 To extend the suite, add `*.test.ts` files under `test/`, import `test` from `node:test`, and use assertions from `node:assert`. Keep regression cases alongside each behavior change. The existing NestJS testing package is available for future tests that need dependency injection or provider overrides.
 

@@ -4,7 +4,7 @@ This checklist tracks the remaining improvements identified against [the updated
 
 ## Correctness and reliability
 
-- [ ] Use an unambiguous, versioned Redis key for each identifier pair. Add a regression test for pairs such as `("a:b", "c")` and `("a", "b:c")` to verify that each receives its own persisted user ID.
+- [x] Use an unambiguous JSON-encoded Redis key for each identifier pair, assuming previous cache entries have been cleared. Add regression tests for pairs such as `("a:b", "c")` and `("a", "b:c")` to verify independent resolution, cache hits and persistence through cache misses with in-memory dependencies.
 - [ ] Define how case, accents and trailing spaces affect identifier equality. Apply consistent behavior in MySQL and Redis, document the decision, and account for existing database tables when changing the schema.
 - [ ] Handle Redis read and write failures without preventing resolution through MySQL. Restore cache availability after reconnection and test outage and recovery behavior.
 - [ ] Verify that database failures produce controlled HTTP responses without exposing internal details.
@@ -31,6 +31,6 @@ This checklist tracks the remaining improvements identified against [the updated
 
 ## Verification status
 
-`npm run check` passes: ESLint reports no issues, all 76 configuration and validation tests pass, and the application builds successfully. The suite verifies configuration loading, required values, startup failure guidance and the shared application validation pipe without external services. Earlier review checks using mocked dependencies reproduced a cache-key collision and a request failure after a simulated Redis write error; these fixes remain pending. Live MySQL, Redis and Docker verification is outstanding.
+`npm run check` passes: ESLint reports no issues, all 78 configuration, validation and service tests pass, and the application builds successfully. The suite verifies configuration loading, required values, startup failure guidance, request validation and cache-key collision prevention without external services. The collision regression failed with the previous key format. Handling request failures after Redis write errors remains pending, as does live MySQL, Redis and Docker verification.
 
 Update this checklist as changes are implemented, with regression tests accompanying the relevant fixes.
