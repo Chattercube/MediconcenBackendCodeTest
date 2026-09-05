@@ -17,8 +17,9 @@ This checklist tracks the remaining improvements identified against [the updated
 
 ## Automated checks
 
-- [ ] Add a working test command with coverage for new and existing pairs, invalid input, cache-key collisions, dependency failures and concurrent requests for the same pair.
-- [ ] Add the missing ESLint configuration and verify lint and build commands succeed.
+- [x] Add a working test command and initial input-validation coverage.
+- [ ] Extend coverage to new and existing pairs, cache-key collisions, dependency failures and concurrent requests for the same pair.
+- [x] Add the missing ESLint configuration and verify lint and build commands succeed.
 - [ ] Run integration checks against MySQL 8 and Redis, including persistence across API restarts and duplicate prevention under concurrent requests.
 - [ ] Verify the documented Docker startup procedure.
 
@@ -30,6 +31,6 @@ This checklist tracks the remaining improvements identified against [the updated
 
 ## Verification status
 
-The application build passed during review. Direct checks of compiled code confirmed validation for selected invalid inputs and reproduced a cache-key collision and a request failure after a simulated Redis write error. These checks used mocked dependencies. Automated test tooling and lint configuration remain incomplete, and live MySQL, Redis and Docker verification is outstanding.
+`npm run check` passes: ESLint reports no issues, all 19 automated validation tests pass, and the application builds successfully. The test suite exercises the shared application validation pipe without external services. Earlier review checks using mocked dependencies reproduced a cache-key collision and a request failure after a simulated Redis write error; these fixes remain pending. Live MySQL, Redis and Docker verification is outstanding.
 
 Update this checklist as changes are implemented, with regression tests accompanying the relevant fixes.

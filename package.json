@@ -9,7 +9,11 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
-    "lint": "eslint \"{src,test}/**/*.ts\" --fix"
+    "lint": "eslint \"{src,test}/**/*.ts\" --max-warnings=0",
+    "lint:fix": "npm run lint -- --fix",
+    "test:build": "node -e \"require('node:fs').rmSync('.test-dist', { recursive: true, force: true })\" && tsc --project tsconfig.test.json",
+    "test": "npm run test:build && node --test .test-dist/test",
+    "check": "npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

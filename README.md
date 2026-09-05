@@ -97,3 +97,27 @@ Run the API:
 ```bash
 npm run start:dev
 ```
+
+## Development Checks
+
+Use Node.js 20 or later (the Docker image uses Node.js 22) and install dependencies with `npm ci` before running checks.
+
+| Command | Purpose |
+| --- | --- |
+| `npm run lint` | Check application and test TypeScript with ESLint; fail on errors or warnings without modifying files. |
+| `npm run lint:fix` | Apply available ESLint fixes, then report any remaining issues. |
+| `npm test` | Compile application and test TypeScript, then run the automated tests. |
+| `npm run build` | Build the application for deployment. |
+| `npm run check` | Run lint, tests and the application build in order; stop on failure. |
+
+### How the tests work
+
+The suite uses Node's built-in `node:test` runner and `node:assert`, with the existing TypeScript compiler. No additional test-runner dependency is required.
+
+`npm test` first removes the generated `.test-dist` directory so deleted tests cannot run from stale output. It compiles the source and tests with `tsconfig.test.json`, preserving the decorator metadata required by NestJS validation. Node then discovers the compiled `*.test.js` files under `.test-dist/test`, reports each result, and exits with a nonzero status if a test fails. TypeScript compilation errors also fail the command before tests run. Test output is ignored by Git and excluded from the application build.
+
+The initial suite in `test/validation.test.ts` exercises the same validation-pipe factory used by application startup. Its 19 cases check valid inputs, length boundaries, missing values, invalid types, empty or oversized identifiers, and unexpected properties. Rejected inputs must produce a 400 exception with a message identifying the invalid field.
+
+These are direct validation tests: they do not start an HTTP server or connect to MySQL or Redis. Persistence, concurrency, HTTP routing and dependency-failure integration checks remain to be added.
+
+To extend the suite, add `*.test.ts` files under `test/`, import `test` from `node:test`, and use assertions from `node:assert`. Keep regression cases alongside each behavior change. The existing NestJS testing package is available for future tests that need dependency injection or provider overrides.
