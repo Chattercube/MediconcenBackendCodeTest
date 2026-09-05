@@ -162,3 +162,15 @@ The configuration suite in `test/configuration.test.ts` checks required values, 
 The 76 tests require no `.env`, HTTP server, MySQL or Redis. Persistence, concurrency, HTTP routing and dependency-failure integration checks remain to be added.
 
 To extend the suite, add `*.test.ts` files under `test/`, import `test` from `node:test`, and use assertions from `node:assert`. Keep regression cases alongside each behavior change. The existing NestJS testing package is available for future tests that need dependency injection or provider overrides.
+
+### Inspecting the database during local development
+
+You can access the MySQL monitor on the machine that runs the sql container by:
+
+`docker exec -it mediconcenbackendcodetest-mysql-1 mysql -u <MYSQL_USER> -p`
+
+... and then enter the password provided in your configuration file
+
+For the specific database, enter this from the interactive environment:
+
+`use <MYSQL_DATABASE>`
