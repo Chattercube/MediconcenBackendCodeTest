@@ -1,9 +1,10 @@
 node_modules
 dist
+.test-dist
+.git
 .env
 .env.*
 !.env.example
 .npm-cache
-npm-debug.log*
 coverage
-.test-dist
+npm-debug.log*

@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { DatabaseService } from '../database/database.service';
 import { RedisService } from '../redis/redis.service';
+import { APP_CONFIGURATION } from '../config/config.module';
+import { Configuration } from '../config/configuration';
 
 interface UserLinkRow extends RowDataPacket {
   user_id: string;
@@ -10,11 +12,10 @@ interface UserLinkRow extends RowDataPacket {
 
 @Injectable()
 export class UserLinksService {
-  private readonly cacheTtlSeconds = Number(process.env.REDIS_CACHE_TTL_SECONDS ?? 300);
-
   constructor(
     private readonly database: DatabaseService,
     private readonly redis: RedisService,
+    @Inject(APP_CONFIGURATION) private readonly configuration: Configuration,
   ) {}
 
   async resolveUserId(id1: string, id2: string): Promise<string> {
@@ -47,7 +48,11 @@ export class UserLinksService {
     );
 
     const userId = rows[0].user_id;
-    await this.redis.set(cacheKey, userId, this.cacheTtlSeconds);
+    await this.redis.set(
+      cacheKey,
+      userId,
+      this.configuration.redis.cacheTtlSeconds,
+    );
     return userId;
   }
 

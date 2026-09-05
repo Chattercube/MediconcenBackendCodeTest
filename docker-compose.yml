@@ -3,16 +3,16 @@ services:
     image: mysql:8
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: mediconcen
-      MYSQL_USER: app
-      MYSQL_PASSWORD: app_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env; see README.md}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env; see README.md}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env; see README.md}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env; see README.md}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:?Set MYSQL_PORT in .env}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uapp", "-papp_password"]
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysqladmin ping -h localhost -u\"$$MYSQL_USER\""]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -21,7 +21,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:?Set REDIS_PORT in .env}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -31,10 +31,18 @@ services:
   api:
     build: .
     restart: unless-stopped
-    env_file:
-      - .env.example
+    environment:
+      PORT: ${PORT:?Set PORT in .env; see README.md}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env; see README.md}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env; see README.md}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env; see README.md}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_CACHE_TTL_SECONDS: ${REDIS_CACHE_TTL_SECONDS:?Set REDIS_CACHE_TTL_SECONDS in .env; see README.md}
     ports:
-      - "3000:3000"
+      - "${PORT:?Set PORT in .env}:${PORT:?Set PORT in .env}"
     depends_on:
       mysql:
         condition: service_healthy

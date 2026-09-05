@@ -11,9 +11,9 @@ This checklist tracks the remaining improvements identified against [the updated
 
 ## Configuration
 
-- [ ] Remove hard-coded database password defaults from application code and Docker Compose. Require environment configuration and validate it at startup.
-- [ ] Keep placeholders in `.env.example` and exclude local credentials from version control.
-- [ ] Document environment loading and the different hostnames used for local and Docker execution.
+- [x] Remove hard-coded database password defaults from application code and Docker Compose. Require environment configuration and validate it at startup.
+- [x] Keep placeholders in `.env.example` and exclude local credentials from version control.
+- [x] Document environment loading and the different hostnames used for local and Docker execution.
 
 ## Automated checks
 
@@ -31,6 +31,6 @@ This checklist tracks the remaining improvements identified against [the updated
 
 ## Verification status
 
-`npm run check` passes: ESLint reports no issues, all 19 automated validation tests pass, and the application builds successfully. The test suite exercises the shared application validation pipe without external services. Earlier review checks using mocked dependencies reproduced a cache-key collision and a request failure after a simulated Redis write error; these fixes remain pending. Live MySQL, Redis and Docker verification is outstanding.
+`npm run check` passes: ESLint reports no issues, all 76 configuration and validation tests pass, and the application builds successfully. The suite verifies configuration loading, required values, startup failure guidance and the shared application validation pipe without external services. Earlier review checks using mocked dependencies reproduced a cache-key collision and a request failure after a simulated Redis write error; these fixes remain pending. Live MySQL, Redis and Docker verification is outstanding.
 
 Update this checklist as changes are implemented, with regression tests accompanying the relevant fixes.

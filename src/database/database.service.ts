@@ -1,17 +1,24 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { createPool, Pool } from 'mysql2/promise';
+import { APP_CONFIGURATION } from '../config/config.module';
+import { Configuration } from '../config/configuration';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private pool!: Pool;
 
+  constructor(
+    @Inject(APP_CONFIGURATION) private readonly configuration: Configuration,
+  ) {}
+
   async onModuleInit() {
     this.pool = createPool({
-      host: process.env.MYSQL_HOST ?? 'localhost',
-      port: Number(process.env.MYSQL_PORT ?? 3306),
-      user: process.env.MYSQL_USER ?? 'app',
-      password: process.env.MYSQL_PASSWORD ?? 'app_password',
-      database: process.env.MYSQL_DATABASE ?? 'mediconcen',
+      ...this.configuration.mysql,
       waitForConnections: true,
       connectionLimit: 10,
       namedPlaceholders: true,
