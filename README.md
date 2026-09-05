@@ -41,7 +41,7 @@ Fill in `MYSQL_PASSWORD` with your own password. If using Docker Compose, also f
 | Variable | Purpose |
 | --- | --- |
 | `PORT` | API listening port. |
-| `MYSQL_HOST`, `MYSQL_PORT` | MySQL address for local application execution. |
+| `MYSQL_HOST`, `MYSQL_PORT` | MySQL address for local application execution. The template uses host port `3307` to avoid a common local `3306` conflict; the containerized API uses MySQL's internal port `3306`. |
 | `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE` | Application database account and database name. |
 | `REDIS_HOST`, `REDIS_PORT` | Redis address for local application execution. |
 | `REDIS_CACHE_TTL_SECONDS` | Positive integer cache lifetime in seconds. |
@@ -152,6 +152,7 @@ Use the Node.js version described above and install dependencies with `npm ci` b
 | `npm run lint:fix` | Apply available ESLint fixes, then report any remaining issues. |
 | `npm test` | Compile application and test TypeScript, then run the automated tests. |
 | `npm run test:redis` | Run the separate live Redis integration check; requires a reachable Redis instance. |
+| `npm run test:integration` | Run the HTTP/MySQL/Redis suite and the live Redis checks; requires working development service credentials. |
 | `npm run build` | Build the application for deployment. |
 | `npm run check` | Run lint, tests and the application build in order; stop on failure. |
 
@@ -169,15 +170,33 @@ The service regression tests in `test/user-links.test.ts` use in-memory database
 
 The Redis unit tests in `test/redis.test.ts` cover startup failure, GET/SET errors, disconnection, recovery and shutdown. They exercise the real Redis service with a client substitute and verify user resolution against an in-memory database substitute.
 
-The 84 default tests require no `.env`, HTTP server, MySQL or Redis. MySQL persistence, concurrency, HTTP routing and database-failure integration checks against real services remain to be added.
+The 84 default tests require no `.env`, HTTP server, MySQL or Redis. Live checks are separate so these fast tests can run without external services.
 
 ### Live Redis verification
 
-Run `npm run test:redis` against an unauthenticated development Redis instance. It defaults to `127.0.0.1:6379`; set `REDIS_TEST_HOST` and `REDIS_TEST_PORT` in the shell to override the target. This command does not load the application `.env` and fails if Redis is unreachable.
+Run `npm run test:redis` against an unauthenticated development Redis instance. The integration commands load `.env`, or the file named by `INTEGRATION_ENV_FILE`, without overriding shell variables. Redis uses `REDIS_HOST` and `REDIS_PORT`, defaulting to `127.0.0.1:6379`; `REDIS_TEST_HOST` and `REDIS_TEST_PORT` take precedence when supplied. The command fails if Redis is unreachable.
 
 The test uses unique, expiring `codex:redis-test:` keys and deletes its own keys afterward. A temporary local TCP proxy interrupts only the test connections; the Redis server is not stopped or flushed. It verifies GET/SET, TTL expiration, stalled-command timeouts, offline startup, automatic reconnection and suppression of offline writes. The application Redis client and service are used directly.
 
 Verified against Redis 7.4.11: all live checks passed, including recovery of both an established connection and a client started during the outage. This establishes Redis behavior; full API/MySQL integration remains outstanding.
+
+### HTTP, MySQL and Redis integration
+
+`npm run test:integration` runs `integration/api.test.ts` and the Redis suite. Configure `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD` and `MYSQL_DATABASE` in `.env` or the shell. Use a development MySQL 8 database whose account can create the application table and select, insert, update and delete test rows. Alternatively, point `INTEGRATION_ENV_FILE` to a separate ignored local configuration file such as `.env.integration`. No fallback database credentials are embedded in the tests.
+
+The suite starts the real NestJS modules and validation pipe on an automatically allocated local HTTP port. It uses real MySQL and Redis connections to check:
+
+- New UUID persistence, repeated requests, cache population and cache misses.
+- Persistence after closing and restarting the application and removing its cache entry.
+- Separate records for identifier pairs that previously collided in Redis.
+- One row and one UUID from 24 concurrent requests for a new pair.
+- HTTP 400 responses for invalid request bodies.
+- Existing and new user resolution during a Redis outage, followed by cache recovery.
+- A generic HTTP 500 during a MySQL connection outage, continued API responsiveness and successful recovery.
+
+The fault-injection proxies affect only test connections. Each run uses random identifier pairs and deletes only its own exact rows and cache keys afterward. The suite does not stop services, flush Redis, truncate tables or drop the database. MySQL must already exist; normal application startup creates `user_links` if needed.
+
+Verified against MySQL 8.4.11 and Redis 7.4.11: all HTTP, persistence, concurrency, validation, outage and recovery checks passed. The containerized API also passed a smoke check confirming HTTP 200 responses, a stable UUID across repeated requests, one matching MySQL row and a matching Redis entry. Integration failures are reported as failures, not skipped or passing tests.
 
 To extend the suite, add `*.test.ts` files under `test/`, import `test` from `node:test`, and use assertions from `node:assert`. Keep regression cases alongside each behavior change. The existing NestJS testing package is available for future tests that need dependency injection or provider overrides.
 

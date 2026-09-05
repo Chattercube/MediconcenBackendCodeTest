@@ -14,6 +14,7 @@
     "test:build": "node -e \"require('node:fs').rmSync('.test-dist', { recursive: true, force: true })\" && tsc --project tsconfig.test.json",
     "test": "npm run test:build && node --test .test-dist/test",
     "test:redis": "npm run test:build && node --test .test-dist/integration/redis.test.js",
+    "test:integration": "npm run test:build && node --test .test-dist/integration/api.test.js .test-dist/integration/redis.test.js",
     "check": "npm run lint && npm test && npm run build"
   },
   "dependencies": {

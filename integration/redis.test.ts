@@ -5,12 +5,16 @@ import { createConnection, createServer, Socket } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { test } from 'node:test';
 import Redis from 'ioredis';
+import { config as dotenv } from 'dotenv';
 import { createRedisClient } from '../src/redis/redis.client';
 import { RedisService } from '../src/redis/redis.service';
 
-async function waitFor(condition: () => boolean, message: string) {
+async function waitFor(
+  condition: () => boolean | Promise<boolean>,
+  message: string,
+) {
   const deadline = Date.now() + 5000;
-  while (!condition()) {
+  while (!(await condition())) {
     assert.ok(Date.now() < deadline, message);
     await delay(25);
   }
@@ -20,8 +24,23 @@ test(
   'live Redis: TTL, disconnect fallback, command timeout and reconnection',
   { timeout: 25000 },
   async (context) => {
-    const host = process.env.REDIS_TEST_HOST ?? '127.0.0.1';
-    const port = Number(process.env.REDIS_TEST_PORT ?? 6379);
+    const loaded = dotenv({
+      path: process.env.INTEGRATION_ENV_FILE ?? '.env',
+      quiet: true,
+    });
+    if (
+      loaded.error &&
+      (loaded.error as NodeJS.ErrnoException).code !== 'ENOENT'
+    ) {
+      throw new Error(
+        'Cannot read integration configuration; check INTEGRATION_ENV_FILE and file permissions.',
+      );
+    }
+    const host =
+      process.env.REDIS_TEST_HOST ?? process.env.REDIS_HOST ?? '127.0.0.1';
+    const port = Number(
+      process.env.REDIS_TEST_PORT ?? process.env.REDIS_PORT ?? 6379,
+    );
     const inspector = new Redis({
       host,
       port,
@@ -101,7 +120,12 @@ test(
     assert.equal(await service.get(keys[0]), 'persisted-id');
     assert.ok((await inspector.ttl(keys[0])) > 0);
     await service.set(keys[1], 'expires', 1);
-    await delay(1100);
+    const expiry = await inspector.pttl(keys[1]);
+    assert.ok(expiry > 0 && expiry <= 1000);
+    await waitFor(
+      async () => (await inspector.exists(keys[1])) === 0,
+      'Redis should expire the test key within the bounded wait',
+    );
     assert.equal(await service.get(keys[1]), null);
     context.diagnostic('SET/GET and server-side TTL expiration passed.');
 

@@ -21,7 +21,8 @@ This checklist tracks the remaining improvements identified against [the updated
 - [ ] Extend coverage to new and existing pairs, cache-key collisions, dependency failures and concurrent requests for the same pair.
 - [x] Add the missing ESLint configuration and verify lint and build commands succeed.
 - [x] Verify Redis GET/SET, TTL expiry, command timeouts, offline startup and reconnection against a live Redis instance.
-- [ ] Run integration checks against MySQL 8 and Redis, including persistence across API restarts and duplicate prevention under concurrent requests.
+- [x] Add a separate HTTP/MySQL/Redis integration suite for persistence, concurrent requests, validation and dependency outages.
+- [x] Run integration checks against MySQL 8 and Redis, including persistence across API restarts and duplicate prevention under concurrent requests.
 - [ ] Verify the documented Docker startup procedure.
 
 ## Documentation
@@ -32,6 +33,6 @@ This checklist tracks the remaining improvements identified against [the updated
 
 ## Verification status
 
-`npm run check` passes: ESLint reports no issues, all 84 configuration, validation and service tests pass, and the application builds successfully. `npm run test:redis` also passes against Redis 7.4.11, verifying cache operations, TTL expiry, bounded waits, offline startup and automatic recovery through isolated test connections. Unit tests verify that Redis failures preserve user resolution with an in-memory database substitute. Live MySQL, full API and Docker verification remain outstanding.
+`npm run check` passes: ESLint reports no issues, all 84 configuration, validation and service tests pass, and the application builds successfully. `npm run test:integration` passes against MySQL 8.4.11 and Redis 7.4.11. It verifies real HTTP requests, persistence across application restart, cache misses, the cache-key collision fix, 24 concurrent requests, invalid input, generic database errors, Redis fallback and recovery. The containerized API also passes a persistence/cache smoke check. Full Docker startup verification is recorded separately because the existing MySQL volume had to be recreated with its current port binding while retaining its data.
 
 Update this checklist as changes are implemented, with regression tests accompanying the relevant fixes.
