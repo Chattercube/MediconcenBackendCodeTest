@@ -10,6 +10,8 @@ Redis is an in-memory data store. Here it is used as a cache: once `(id1, id2)` 
 
 Cache keys use `user-link:` followed by a JSON-encoded identifier pair. For example, `("a:b", "c")` becomes `user-link:["a:b","c"]`, while `("a", "b:c")` becomes `user-link:["a","b:c"]`. JSON encoding preserves the boundary between identifiers and escapes quotes and backslashes. Existing cache entries are assumed to have been cleared before adopting this format.
 
+Redis is optional at runtime: an unavailable connection or failed GET is treated as a cache miss, and a failed SET does not prevent returning the MySQL result. Connections and commands have one-second timeouts. Commands are not queued while offline or replayed after reconnection. The client reconnects in the background, and caching resumes when its status becomes ready. Shutdown disconnects directly so it cannot wait for an offline QUIT command. A stalled GET followed by a stalled SET can add roughly two seconds to a request; MySQL latency is separate.
+
 ## Run With Docker
 
 Complete the configuration setup below first, including both MySQL passwords. Docker with the Compose plugin is required.
@@ -108,11 +110,12 @@ sequenceDiagram
   alt Cache hit
     Redis-->>API: userID
     API-->>Client: { userID }
-  else Cache miss
+  else Cache miss or Redis unavailable
     API->>MySQL: INSERT id1, id2, UUIDv4 ON DUPLICATE KEY UPDATE
     API->>MySQL: SELECT user_id WHERE id1 = ? AND id2 = ?
     MySQL-->>API: userID
     API->>Redis: SET user-link:JSON.stringify([id1, id2]) userID
+    Note over API,Redis: SET failures are logged; return the MySQL result
     API-->>Client: { userID }
   end
 ```
@@ -148,6 +151,7 @@ Use the Node.js version described above and install dependencies with `npm ci` b
 | `npm run lint` | Check application and test TypeScript with ESLint; fail on errors or warnings without modifying files. |
 | `npm run lint:fix` | Apply available ESLint fixes, then report any remaining issues. |
 | `npm test` | Compile application and test TypeScript, then run the automated tests. |
+| `npm run test:redis` | Run the separate live Redis integration check; requires a reachable Redis instance. |
 | `npm run build` | Build the application for deployment. |
 | `npm run check` | Run lint, tests and the application build in order; stop on failure. |
 
@@ -163,7 +167,17 @@ The configuration suite in `test/configuration.test.ts` checks required values, 
 
 The service regression tests in `test/user-links.test.ts` use in-memory database and Redis substitutes to verify that delimiter-containing identifiers, quotes, backslashes and pair ordering resolve independently. They also verify that repeated requests use the cache and retain their IDs after the cache is cleared.
 
-The 78 tests require no `.env`, HTTP server, MySQL or Redis. Persistence, concurrency, HTTP routing and dependency-failure integration checks against real services remain to be added.
+The Redis unit tests in `test/redis.test.ts` cover startup failure, GET/SET errors, disconnection, recovery and shutdown. They exercise the real Redis service with a client substitute and verify user resolution against an in-memory database substitute.
+
+The 84 default tests require no `.env`, HTTP server, MySQL or Redis. MySQL persistence, concurrency, HTTP routing and database-failure integration checks against real services remain to be added.
+
+### Live Redis verification
+
+Run `npm run test:redis` against an unauthenticated development Redis instance. It defaults to `127.0.0.1:6379`; set `REDIS_TEST_HOST` and `REDIS_TEST_PORT` in the shell to override the target. This command does not load the application `.env` and fails if Redis is unreachable.
+
+The test uses unique, expiring `codex:redis-test:` keys and deletes its own keys afterward. A temporary local TCP proxy interrupts only the test connections; the Redis server is not stopped or flushed. It verifies GET/SET, TTL expiration, stalled-command timeouts, offline startup, automatic reconnection and suppression of offline writes. The application Redis client and service are used directly.
+
+Verified against Redis 7.4.11: all live checks passed, including recovery of both an established connection and a client started during the outage. This establishes Redis behavior; full API/MySQL integration remains outstanding.
 
 To extend the suite, add `*.test.ts` files under `test/`, import `test` from `node:test`, and use assertions from `node:assert`. Keep regression cases alongside each behavior change. The existing NestJS testing package is available for future tests that need dependency injection or provider overrides.
 
