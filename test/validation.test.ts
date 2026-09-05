@@ -31,6 +31,7 @@ const invalidValues: { label: string; value: unknown }[] = [
   { label: 'missing', value: undefined },
   { label: 'null', value: null },
   { label: 'empty', value: '' },
+  { label: 'whitespace only', value: ' \t\r\n' },
   { label: 'numeric', value: 123 },
   { label: 'boolean', value: true },
   { label: 'an array', value: ['ABC123'] },

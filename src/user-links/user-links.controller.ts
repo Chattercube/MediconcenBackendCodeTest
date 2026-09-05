@@ -9,7 +9,10 @@ export class UserLinksController {
   @Post('resolve')
   @HttpCode(200)
   async resolve(@Body() body: ResolveUserDto) {
-    const userID = await this.userLinksService.resolveUserId(body.id1, body.id2);
+    const userID = await this.userLinksService.resolveUserId(
+      body.id1,
+      body.id2,
+    );
     return { userID };
   }
 }

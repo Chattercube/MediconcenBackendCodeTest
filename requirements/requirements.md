@@ -1,3 +1,5 @@
+> Legacy brief: [`new_requirements.pdf`](new_requirements.pdf) is the current assessment specification. This file is retained only to show the original project brief.
+
 ## Stack
 Framework : NestJS
 Language : NodeJS + Typescript

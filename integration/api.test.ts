@@ -228,6 +228,31 @@ test(
     );
 
     await context.test(
+      'identifier equality follows the documented MySQL collation',
+      async () => {
+        const suffix = randomUUID();
+        const variants: [string, string][] = [
+          [`Café:${suffix}`, 'Member'],
+          [`cafe:${suffix}`, 'member'],
+          [`CAFÉ:${suffix}   `, 'MEMBER   '],
+        ];
+        ownedPairs.push(...variants);
+        const ids: string[] = [];
+        for (const value of variants) ids.push(await resolvePair(value));
+        assert.equal(
+          new Set(ids).size,
+          1,
+          'case, accents and trailing spaces should identify the same row',
+        );
+        const [rows] = await database.execute<RowDataPacket[]>(
+          'SELECT COUNT(*) AS record_count FROM user_links WHERE id1 = ? AND id2 = ?',
+          variants[0],
+        );
+        assert.equal(Number(rows[0].record_count), 1);
+      },
+    );
+
+    await context.test(
       '24 concurrent requests create one record and return one UUID',
       async () => {
         const value = pair('concurrent');

@@ -5,7 +5,7 @@
   "description": "NestJS backend code test using MySQL 8 and Redis",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write --single-quote \"{src,test,integration}/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
